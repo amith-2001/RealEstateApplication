@@ -1,8 +1,8 @@
 import streamlit as st
 
-# Example data
-clients = {"101": "Alice", "102": "Bob"}
-agents = {"201": "Agent X", "202": "Agent Y"}
+# Example data storage for demo purposes
+clients = {}
+agents = {}
 properties = {
     "Property 1": {"image": "https://via.placeholder.com/150", "agents": agents},
     "Property 2": {"image": "https://via.placeholder.com/150", "agents": agents},
@@ -37,8 +37,21 @@ def login_user():
         st.error("Invalid ID. Please try again.")
 
 def create_account(user_type):
-    """ Placeholder for account creation """
-    st.info(f"Create an account for a {user_type}. (Functionality to be implemented)")
+    """ Function to create a new client or agent account """
+    with st.form(key=f"create_{user_type}_form"):
+        name = st.text_input("Name")
+        email = st.text_input("Email")
+        new_id = st.text_input("ID")
+        submit_button = st.form_submit_button(label="Create Account")
+        if submit_button:
+            if user_type == "Client":
+                clients[new_id] = {'name': name, 'email': email}
+                st.success("Client account created successfully!")
+            else:
+                agents[new_id] = {'name': name, 'email': email}
+                st.success("Agent account created successfully!")
+            st.session_state['user_id'] = new_id  # Automatically log in the new user
+            login_user()  # Update login status
 
 def book_appointment(property_name, agent_id):
     """ Book an appointment with an agent for a property """
@@ -48,7 +61,7 @@ def book_appointment(property_name, agent_id):
         'property_name': property_name
     }
     st.session_state['bookings'].append(booking_info)
-    st.success(f"Appointment booked with {agents[agent_id]} for {property_name}")
+    st.success(f"Appointment booked with {agents[agent_id]['name']} for {property_name}")
 
 # Custom CSS to center content and style the app
 st.markdown("""
@@ -73,7 +86,6 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Page title
 st.title('Real Estate Management System')
 
 # Center content based on user selection
@@ -94,7 +106,7 @@ with st.container():
             st.button("Go Back", on_click=reset_user_type)
     else:
         if st.session_state['user_type'] == "Client":
-            st.sidebar.write(f"Welcome, {clients.get(st.session_state['user_id'], 'Unknown Client')}")
+            st.sidebar.write(f"Welcome, {clients.get(st.session_state['user_id'], {}).get('name', 'Unknown Client')}")
             cols = st.columns(3)
             for idx, (property_name, property_info) in enumerate(properties.items()):
                 with cols[idx % 3]:
@@ -103,7 +115,7 @@ with st.container():
                     if st.button("Book Appointment", key=f"book{idx}"):
                         book_appointment(property_name, agent_selected)
         elif st.session_state['user_type'] == "Agent":
-            st.sidebar.write(f"Welcome, {agents.get(st.session_state['user_id'], 'Unknown Agent')}")
+            st.sidebar.write(f"Welcome, {agents.get(st.session_state['user_id'], {}).get('name', 'Unknown Agent')}")
             st.subheader("Your Appointments:")
             agent_bookings = [b for b in st.session_state['bookings'] if b['agent_id'] == st.session_state['user_id']]
             if agent_bookings:
@@ -111,6 +123,3 @@ with st.container():
                     st.write(f"Client ID: {booking['client_id']} - Property: {booking['property_name']}")
             else:
                 st.write("No appointments booked yet.")
-
-
-
