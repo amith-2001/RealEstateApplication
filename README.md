@@ -20,17 +20,17 @@ To run this project, follow these steps:
    cd RealEstateApplication
    ```
 2. **Install Requirements**
-   Run the command
+   Run the following command in the terminal
    ```bash
    pip install requirements.txt
    ```
-    in the terminal
+   
 2. **Run the web app**
-    use the
+    use the following command to run the web app on your local system.
    ```bash
    streamlit run final_working.py
    ```
-    to run the web app on your local system.
+   
 
 
 ### Additional Guidance:
