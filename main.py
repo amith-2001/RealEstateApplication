@@ -1,4 +1,15 @@
+# import mongodb
 import streamlit as st
+from pymongo import MongoClient
+
+uri = "mongodb+srv://pranshuacharya:StockManagementSystem@cluster0.zmlvecl.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+client = MongoClient(uri)
+db = client['RealEstate']
+agentCollection = db['Agent']
+clientCollection = db['Client']
+propertyCollection = db['Property']
+AppointmentCollection = db['Appointment']
+
 
 # Example data storage for demo purposes
 clients = {"1": {"name": "Alice", "email": "alice@example.com"}}
@@ -9,43 +20,71 @@ properties = {
     "Property 3": {"image": "https://via.placeholder.com/150", "agents": agents},
 }
 
+
 # Initialize session state if not already set
 if 'user_type' not in st.session_state:
     st.session_state['user_type'] = None
 if 'user_id' not in st.session_state:
     st.session_state['user_id'] = None
+if 'user_name' not in st.session_state:
+    st.session_state['user_name'] = None
 if 'authenticated' not in st.session_state:
     st.session_state['authenticated'] = False
 if 'bookings' not in st.session_state:
     st.session_state['bookings'] = []
+if 'edit_mode' not in st.session_state:
+    st.session_state['edit_mode'] = False
+
 
 def set_user_type(user_type):
     """ Set the type of user (Agent or Client) """
     st.session_state['user_type'] = user_type
+
 
 def reset_user_type():
     """ Reset user type to None to show initial screen """
     st.session_state['user_type'] = None
     st.session_state['user_id'] = None
     st.session_state['authenticated'] = False
+    st.session_state['user_name'] = None
+    st.session_state['edit_mode'] = False
+    st.experimental_rerun()
+
 
 def authenticate_user(user_id, user_type):
     """ Check user credentials based on type """
+    # Parse the user_id to int
+    user_id = int(user_id)
     if user_type == "Agent":
-        return user_id == "1"  # Only "1" is a valid ID for agents
+        # Find the user_id in the database
+        agent = agentCollection.find_one({"AgentId": user_id})
+        if agent:
+            st.session_state['user_name'] = agent['Name']
+            return True
+        # return user_id == "1"  # Only "1" is a valid ID for agents
     elif user_type == "Client":
-        return user_id == "1"  # Only "1" is a valid ID for clients
+        # Find the user_id in the database
+        client = clientCollection.find_one({"ClientId": user_id})
+        if client:
+            st.session_state['user_name'] = client['Name']
+            return True
+        # return user_id == "1"  # Only "1" is a valid ID for clients
     return False
+
 
 def login_user(user_id):
     """ Simulate a login function with different authentication for agents and clients """
     if authenticate_user(user_id, st.session_state['user_type']):
+        # Get the client name from the database
+        print("Authenticated")
         st.session_state['user_id'] = user_id
         st.session_state['authenticated'] = True
-        st.success(f"Welcome {st.session_state['user_type']} with ID {user_id}!")
+        st.success(
+            f"Welcome {st.session_state['user_type']} : {st.session_state['user_name']}!")
     else:
         st.session_state['authenticated'] = False
         st.error("Incorrect ID. Please try again.")
+
 
 def create_account(user_type):
     """ Function to create a new client or agent account """
@@ -56,12 +95,21 @@ def create_account(user_type):
         submit_button = st.form_submit_button(label="Create Account")
         if submit_button:
             if user_type == "Client":
-                clients[new_id] = {'name': name, 'email': email}
+                # clients[new_id] = {'name': name, 'email': email}
+
+                # Insert the new client into the database
+                clientCollection.insert_one(
+                    {"ClientId": int(new_id), "Name": name, "Email": email})
                 st.success("Client account created successfully!")
             else:
-                agents[new_id] = {'name': name, 'email': email}
+
+                # Insert the new agent into the database
+                agentCollection.insert_one(
+                    {"AgentId": int(new_id), "Name": name, "Email": email})
+                # agents[new_id] = {'name': name, 'email': email}
                 st.success("Agent account created successfully!")
             login_user(new_id)
+
 
 # Custom CSS to center content and style the app
 st.markdown("""
@@ -88,26 +136,98 @@ st.markdown("""
 
 st.title('Real Estate Management System')
 
+
+def update_profile(user_id, user_type, name, email):
+    """ Update client or agent profile information """
+    if user_type == "Client":
+        clients[user_id]['name'] = name
+        clients[user_id]['email'] = email
+    else:
+        agents[user_id]['name'] = name
+        agents[user_id]['email'] = email
+    st.success("Profile updated successfully!")
+
+
 def display_user_dashboard():
+
     if st.session_state['authenticated']:
         if st.session_state['user_type'] == "Client":
-            st.sidebar.write(f"Welcome, {clients.get(st.session_state['user_id'], {}).get('name', 'Unknown Client')}")
+            st.sidebar.write(
+                f"Welcome, {st.session_state['user_name']}")
             cols = st.columns(3)
-            for idx, (property_name, property_info) in enumerate(properties.items()):
-                with cols[idx % 3]:
-                    st.image(property_info["image"], width=150, caption=property_name)
-                    agent_selected = st.selectbox("Choose an agent", list(property_info["agents"].keys()), key=f"agent{idx}")
-                    if st.button("Book Appointment", key=f"book{idx}"):
-                        book_appointment(property_name, agent_selected)
+
+            # Get list of Agents from the database
+            agents = agentCollection.find()
+
+            # Convert agents to a an array of agent id and name
+            # agents = [{"AgentId": agents["AgentId"], "Name": agents["Name"]}]
+
+            agents = {agent["AgentId"]: agent["Name"] for agent in agents}
+
+            # Get List of Properties  from the database
+            properties = propertyCollection.find()
+
+            print("HEREEEEEE", agents)
+
+            c = 0
+            for property in properties:
+
+                with cols[c % 3]:
+                    st.image(property["img"],
+                             width=150, caption=property["Address"])
+
+                    # agents = agentCollection.find()
+                    # agent_names = [agent["Name"] for agent in agents]
+                    # agent_selected = st.selectbox("Choose an agent", agent_names, key="Name")
+                c += 1
+
+            agent_selected = st.selectbox("Choose an agent", list(
+                agents.values()), key=f"agent")
+            print("AGENTTTTT", agent_selected)
+            st.button("Book Appointment", key=f"book", on_click=book_appointment(
+                st.session_state["user_id"], agent_selected))
+            # for idx, (property_name, property_info) in enumerate(properties.items()):
+            #     with cols[idx % 3]:
+            #         st.image(property_info["image"],
+            #                  width=150, caption=property_name)
+            #         agent_selected = st.selectbox("Choose an agent", list(
+            #             property_info["agents"].keys()), key=f"agent{idx}")
+            #         if st.button("Book Appointment", key=f"book{idx}"):
+            #             book_appointment(property_name, agent_selected)
         elif st.session_state['user_type'] == "Agent":
-            st.sidebar.write(f"Welcome, {agents.get(st.session_state['user_id'], {}).get('name', 'Unknown Agent')}")
+            st.sidebar.write(
+                f"Welcome, {st.session_state['user_name']}")
             st.subheader("Your Appointments:")
-            agent_bookings = [b for b in st.session_state['bookings'] if b['agent_id'] == st.session_state['user_id']]
+
+            # Get all appointments from the database where the AgentId matches the current agent
+            agent_bookings = AppointmentCollection.find(
+                {"AgentId": int(st.session_state['user_id'])})
+            # agent_bookings = [b for b in st.session_state['bookings']
+            #                   if b['agent_id'] == st.session_state['user_id']]
             if agent_bookings:
+                print("There are agents", agent_bookings)
                 for booking in agent_bookings:
-                    st.write(f"Client ID: {booking['client_id']} - Property: {booking['property_name']}")
+                    print(booking)
+                    st.write(
+                        f"Client ID: {booking['ClientId']} - Date: {booking['Date']}")
             else:
                 st.write("No appointments booked yet.")
+
+
+def book_appointment(client_id, agent_id):
+    """ Function to book an appointment """
+    # appointments = st.session_state['bookings']
+    # appointments.append({'client_id': client_id, 'agent_id': agent_id})
+    # st.session_state['bookings'] = appointments
+
+    # Get Agent Id based on the agent name
+    agent = agentCollection.find_one({"Name": agent_id})
+
+    # Insert the new appointment into the database
+    AppointmentCollection.insert_one(
+        {"ClientId": int(client_id), "AgentId": int(agent["AgentId"]), "Date": "2021-10-10"})
+    st.success("Appointment booked successfully!")
+
 
 # Center content based on user selection
 with st.container():
@@ -120,7 +240,8 @@ with st.container():
         user_type = st.session_state['user_type']
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st.subheader(f"Hello {user_type}, please login or create a new account.")
+            st.subheader(
+                f"Hello {user_type}, please login or create a new account.")
             user_id = st.text_input(f"{user_type} ID")
             if st.button('Login'):
                 login_user(user_id)
@@ -129,4 +250,3 @@ with st.container():
             st.button("Go Back", on_click=reset_user_type)
     else:
         display_user_dashboard()
-
