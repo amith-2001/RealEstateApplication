@@ -1,7 +1,7 @@
 # Real Estate Management System
 
 ## Project Overview
-This project is a web-based Real Estate Management System built with Streamlit and MongoDB. It allows users to create and manage client and agent accounts within a real estate context. The system supports operations such as account creation, property management, and appointment bookings, all integrated with a MongoDB backend for persistent storage.
+This project is a web-based Real Estate Management System built with Streamlit and MongoDB. It allows users to create and manage client and agent accounts within a real estate context. The system supports operations such as account creation, property management, and appointment bookings, all integrated with a MongoDB backend for persistent storage. You can use our applicaton by clicking on the demo link below.
 
 ## Features
 - **User Account Creation:** Create client and agent accounts.
@@ -26,4 +26,17 @@ To run this project, follow these steps:
    ```
     in the terminal
 2. **Run the web app**
-    use the streamlit run final_working.py to run the web app on your local system.
+    use the
+   ```bash
+   streamlit run final_working.py
+   ```
+    to run the web app on your local system.
+
+
+### Additional Guidance:
+- **Repository URL**: https://github.com/amith-2001/RealEstateApplication/
+- **Demo URL**: https://realestateapplication-elidyfkqsshaffhrh5frq6.streamlit.app/
+
+
+### Contribution:
+Pranshu Acharya and Rahul Manjunath have contributed immensely to this project.
