@@ -38,7 +38,7 @@ To run this project, follow these steps:
 - **Demo URL**: https://realestateapplication-elidyfkqsshaffhrh5frq6.streamlit.app/
 
 ### Usage:
-Use ```bash 1 ``` as the agent id or client id for demo purpose.
+Use ``` 1 ``` as the agent id or client id for demo purpose.
 
 ### Contribution:
 Pranshu Acharya and Rahul Manjunath have contributed immensely to this project.
