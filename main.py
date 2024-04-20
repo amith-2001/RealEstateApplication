@@ -1,8 +1,8 @@
 import streamlit as st
 
 # Example data storage for demo purposes
-clients = {}
-agents = {}
+clients = {"1": {"name": "Alice", "email": "alice@example.com"}}
+agents = {"1": {"name": "Agent X", "email": "agentx@example.com"}}
 properties = {
     "Property 1": {"image": "https://via.placeholder.com/150", "agents": agents},
     "Property 2": {"image": "https://via.placeholder.com/150", "agents": agents},
@@ -14,27 +14,38 @@ if 'user_type' not in st.session_state:
     st.session_state['user_type'] = None
 if 'user_id' not in st.session_state:
     st.session_state['user_id'] = None
+if 'authenticated' not in st.session_state:
+    st.session_state['authenticated'] = False
 if 'bookings' not in st.session_state:
     st.session_state['bookings'] = []
 
 def set_user_type(user_type):
     """ Set the type of user (Agent or Client) """
     st.session_state['user_type'] = user_type
-    st.session_state['user_id'] = None  # Reset user_id whenever user type is set
 
 def reset_user_type():
     """ Reset user type to None to show initial screen """
     st.session_state['user_type'] = None
     st.session_state['user_id'] = None
+    st.session_state['authenticated'] = False
 
-def login_user():
-    """ Simulate a login function """
-    user_id = st.session_state['user_id']
-    user_type = st.session_state['user_type']
-    if user_id in clients or user_id in agents:
-        st.success(f"Welcome {user_type} with ID {user_id}!")
+def authenticate_user(user_id, user_type):
+    """ Check user credentials based on type """
+    if user_type == "Agent":
+        return user_id == "1"  # Only "1" is a valid ID for agents
+    elif user_type == "Client":
+        return user_id == "1"  # Only "1" is a valid ID for clients
+    return False
+
+def login_user(user_id):
+    """ Simulate a login function with different authentication for agents and clients """
+    if authenticate_user(user_id, st.session_state['user_type']):
+        st.session_state['user_id'] = user_id
+        st.session_state['authenticated'] = True
+        st.success(f"Welcome {st.session_state['user_type']} with ID {user_id}!")
     else:
-        st.error("Invalid ID. Please try again.")
+        st.session_state['authenticated'] = False
+        st.error("Incorrect ID. Please try again.")
 
 def create_account(user_type):
     """ Function to create a new client or agent account """
@@ -50,18 +61,7 @@ def create_account(user_type):
             else:
                 agents[new_id] = {'name': name, 'email': email}
                 st.success("Agent account created successfully!")
-            st.session_state['user_id'] = new_id  # Automatically log in the new user
-            login_user()  # Update login status
-
-def book_appointment(property_name, agent_id):
-    """ Book an appointment with an agent for a property """
-    booking_info = {
-        'client_id': st.session_state['user_id'],
-        'agent_id': agent_id,
-        'property_name': property_name
-    }
-    st.session_state['bookings'].append(booking_info)
-    st.success(f"Appointment booked with {agents[agent_id]['name']} for {property_name}")
+            login_user(new_id)
 
 # Custom CSS to center content and style the app
 st.markdown("""
@@ -88,23 +88,8 @@ st.markdown("""
 
 st.title('Real Estate Management System')
 
-# Center content based on user selection
-with st.container():
-    if st.session_state['user_type'] is None:
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            st.button("Agent", on_click=set_user_type, args=('Agent',))
-            st.button("Client", on_click=set_user_type, args=('Client',))
-    elif st.session_state['user_id'] is None:
-        user_type = st.session_state['user_type']
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            st.subheader(f"Hello {user_type}, please login or create a new account.")
-            user_id = st.text_input(f"{user_type} ID", key="user_id")
-            st.button('Login', on_click=login_user)
-            st.button(f"Create New {user_type} Account", on_click=lambda: create_account(user_type))
-            st.button("Go Back", on_click=reset_user_type)
-    else:
+def display_user_dashboard():
+    if st.session_state['authenticated']:
         if st.session_state['user_type'] == "Client":
             st.sidebar.write(f"Welcome, {clients.get(st.session_state['user_id'], {}).get('name', 'Unknown Client')}")
             cols = st.columns(3)
@@ -123,3 +108,25 @@ with st.container():
                     st.write(f"Client ID: {booking['client_id']} - Property: {booking['property_name']}")
             else:
                 st.write("No appointments booked yet.")
+
+# Center content based on user selection
+with st.container():
+    if st.session_state['user_type'] is None:
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.button("Agent", on_click=set_user_type, args=('Agent',))
+            st.button("Client", on_click=set_user_type, args=('Client',))
+    elif not st.session_state['authenticated']:
+        user_type = st.session_state['user_type']
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.subheader(f"Hello {user_type}, please login or create a new account.")
+            user_id = st.text_input(f"{user_type} ID")
+            if st.button('Login'):
+                login_user(user_id)
+            if st.button(f"Create New {user_type} Account"):
+                create_account(user_type)
+            st.button("Go Back", on_click=reset_user_type)
+    else:
+        display_user_dashboard()
+
