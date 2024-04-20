@@ -88,25 +88,23 @@ def login_user(user_id):
 
 def create_account(user_type):
     """ Function to create a new client or agent account """
-    with st.form(key=f"create_{user_type}_form"):
+    form_key = f"create_{user_type}_form"
+    with st.form(key=form_key):
         name = st.text_input("Name")
         email = st.text_input("Email")
         new_id = st.text_input("ID")
         submit_button = st.form_submit_button(label="Create Account")
+
         if submit_button:
             if user_type == "Client":
-                # clients[new_id] = {'name': name, 'email': email}
-
                 # Insert the new client into the database
                 clientCollection.insert_one(
                     {"ClientId": int(new_id), "Name": name, "Email": email})
                 st.success("Client account created successfully!")
             else:
-
                 # Insert the new agent into the database
                 agentCollection.insert_one(
                     {"AgentId": int(new_id), "Name": name, "Email": email})
-                # agents[new_id] = {'name': name, 'email': email}
                 st.success("Agent account created successfully!")
             login_user(new_id)
 
@@ -184,8 +182,9 @@ def display_user_dashboard():
             agent_selected = st.selectbox("Choose an agent", list(
                 agents.values()), key=f"agent")
             print("AGENTTTTT", agent_selected)
-            st.button("Book Appointment", key=f"book", on_click=book_appointment(
-                st.session_state["user_id"], agent_selected))
+            if st.button("Book Appointment", key=f"book"):
+                book_appointment(
+                    st.session_state["user_id"], agent_selected)
             # for idx, (property_name, property_info) in enumerate(properties.items()):
             #     with cols[idx % 3]:
             #         st.image(property_info["image"],
@@ -206,10 +205,14 @@ def display_user_dashboard():
             #                   if b['agent_id'] == st.session_state['user_id']]
             if agent_bookings:
                 print("There are agents", agent_bookings)
+                # Display now all the clients and convert into dictionary with client id as key and name as value
+                clients = clientCollection.find()
+                clients = {client["ClientId"]: client["Name"]
+                           for client in clients}
                 for booking in agent_bookings:
                     print(booking)
                     st.write(
-                        f"Client ID: {booking['ClientId']} - Date: {booking['Date']}")
+                        f"Client ID: {booking['ClientId']} | Client Name: {clients[booking['ClientId']]} - Date: {booking['Date']}")
             else:
                 st.write("No appointments booked yet.")
 
