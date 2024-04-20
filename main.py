@@ -111,3 +111,6 @@ with st.container():
                     st.write(f"Client ID: {booking['client_id']} - Property: {booking['property_name']}")
             else:
                 st.write("No appointments booked yet.")
+
+
+
